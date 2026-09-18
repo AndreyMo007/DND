@@ -4,18 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0e0f13">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Кубик и Судьба">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="apple-touch-icon" href="icon-192.png">
 <title>Кубик и Судьба — ИИ-Мастер</title>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0e0f13;color:#e8e6e3;overscroll-behavior:none}
   #app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:720px;margin:0 auto}
-  header{padding:10px 14px;background:#15171d;border-bottom:1px solid #242833;display:flex;align-items:center;gap:8px;flex-shrink:0;padding-top:calc(10px + env(safe-area-inset-top))}
+  header{padding:10px 14px;background:#15171d;border-bottom:1px solid #242833;display:flex;align-items:center;gap:8px;flex-shrink:0}
   header h1{font-size:14px;margin:0;font-weight:700;letter-spacing:.4px;color:#c9b47a}
   .badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#242833;color:#8b93a3;margin-left:auto}
   .badge.online{background:#1a2a1e;color:#4caf50}
@@ -32,7 +26,7 @@
   .msg.title{background:transparent;text-align:center;color:#c9b47a;font-size:19px;font-weight:800;letter-spacing:.6px;padding:20px 0 8px}
   .msg.thinking{background:#15171d;color:#c9b47a;font-style:italic;text-align:center;font-size:13px}
   .name{font-size:11px;color:#7a8394;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.6px}
-  footer{padding:10px 12px;background:#15171d;border-top:1px solid #242833;display:flex;gap:8px;align-items:flex-end;flex-shrink:0;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  footer{padding:10px 12px;background:#15171d;border-top:1px solid #242833;display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
   #input{flex:1;background:#0e0f13;border:1px solid #2a2f3c;border-radius:12px;padding:11px 13px;color:#e8e6e3;font-size:15px;font-family:inherit;resize:none;min-height:44px;max-height:110px;outline:none}
   #input:focus{border-color:#c9b47a}
   button{background:#c9b47a;color:#0e0f13;border:none;padding:12px 18px;border-radius:12px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
@@ -46,7 +40,6 @@
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 14px}
   .pbtn{padding:16px 0;font-size:18px;text-align:center}
   .rollBtn{background:#c9b47a;color:#0e0f13;padding:14px;font-size:15px;margin:0 14px 14px;width:calc(100% - 28px)}
-  .installBtn{position:fixed;bottom:80px;right:14px;background:#4a8fff;color:#fff;padding:10px 16px;border-radius:22px;font-size:13px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none;z-index:100;border:none}
 </style>
 </head>
 <body>
@@ -63,10 +56,9 @@
     <button id="sendBtn">➤</button>
   </footer>
 </div>
-<button class="installBtn" id="installBtn">⬇ Установить</button>
 <script>
 /* =====================================================================
-   КУБИК И СУДЬБА — PWA-версия с ИИ-Мастером на Cloudflare Workers AI
+   КУБИК И СУДЬБА — онлайн-версия с ИИ-Мастером на Cloudflare Workers AI
    ===================================================================== */
 
 const PROXY_URL = 'https://igra-master-proxy.andreymomot007.workers.dev';
@@ -75,6 +67,60 @@ const PROXY_URL = 'https://igra-master-proxy.andreymomot007.workers.dev';
 const $ = s => document.querySelector(s);
 const ri = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
 const die = s => ri(1,s);
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+
+/* ---------- БАНКИ СЛУЧАЙНОСТЕЙ (чтобы сюжет не повторялся) ---------- */
+const GENRES = [
+  'тёмное фэнтези','космическая одиссея','хоррор-детектив','постапокалипсис',
+  'стимпанк','пиратское приключение','киберпанк','славянское фэнтези',
+  'вестерн с магией','мифическая Япония','альтернативная история',
+  'подводный мир','городской детектив','психоделический сюрреализм',
+  'доисторические времена','шпионский триллер','fantasy-нуар',
+  'пустынный караван','ледяная экспедиция','джунгли древних богов'
+];
+
+const MOODS = [
+  'мрачная и тревожная','лёгкая и юмористическая','эпическая и героическая',
+  'загадочная и мистическая','жестокая и безжалостная','ироничная и циничная',
+  'меланхоличная и лиричная','безумная и абсурдная','напряжённая как триллер',
+  'тёплая и душевная','холодная и отстранённая','безнадёжная и давящая'
+];
+
+const HOOKS = [
+  'все игроки очнулись в незнакомом месте без памяти',
+  'один из игроков получает письмо от человека, который давно умер',
+  'земля начала шептать — только вы это слышите',
+  'каждую ночь пропадает по одному жителю ближайшего поселения',
+  'в небе появилась вторая луна, и никто, кроме вас, её не видит',
+  'ваш отряд получил заказ, от которого отказались все остальные',
+  'вы должны спасти ребёнка, который ещё не родился',
+  'найденный артефакт оказался живым и говорит с вами',
+  'все дороги ведут в одно место, которого нет на картах',
+  'вы выиграли билет в место, которого не должно существовать',
+  'ваш дом исчез, оставив только ровный круг пепла',
+  'вы получили власть, о которой не просили, и она требует плату',
+  'кто-то украл ваши тени',
+  'один из вас — не тот, за кого себя выдаёт, и он сам этого не знает'
+];
+
+const TWISTS = [
+  'союзник окажется врагом, а враг — единственным, кто может спасти',
+  'всё, что происходит — уже происходило раньше, много раз',
+  'настоящий злодей — сама реальность',
+  'один из игроков должен пожертвовать собой в финале',
+  'то, что вы ищете, ищет вас',
+  'ваша цель была ложной с самого начала',
+  'время течёт в этом месте вспять',
+  'есть третий вариант, о котором никто не думал'
+];
+
+const SEEDS = [
+  'запах мокрой шерсти','звук детской считалки','разбитое зеркало','письмо без подписи',
+  'железный ключ','клетка с пустотой внутри','карта без названий','шрам в форме звезды',
+  'монета, которая всегда падает орлом','зерно, которое не прорастает','белая ворона',
+  'книга без первой страницы','песня без слов','дверь без стены','часы, идущие назад',
+  'вышивка с чужой подписью','фотография, где все лица размыты','кукла без глаз'
+];
 
 /* ---------- СОСТОЯНИЕ ---------- */
 const S = {
@@ -146,10 +192,10 @@ async function callLLM(messages, maxTokens = 1500){
 }
 
 /* ---------- СИСТЕМНЫЙ ПРОМПТ ---------- */
-const SYSTEM_PROMPT = `Ты — Мастер настольной ролевой игры на одном телефоне для 2–6 игроков. Ты ведёшь живую историю в жанре, который сам придумаешь в начале.
+const SYSTEM_PROMPT = `Ты — Мастер настольной ролевой игры на одном телефоне для 2–6 игроков. Ты ведёшь живую историю в заданном жанре.
 
 ПРАВИЛА:
-1. Ты САМ придумываешь жанр, место, цель, вступление и 6 ролей на выбор. Игроки выбирают роли по очереди.
+1. Ты придумываешь место, цель, вступление и 6 ролей на выбор. Игроки выбирают роли по очереди.
 2. После выбора ролей ты даёшь каждому 2–3 предмета и говоришь, что делать: бросить кубик на здоровье (d8–d12 в зависимости от роли), на удачу (d6) или на другую характеристику.
 3. Каждый ход игрок пишет действие или вопрос. На вопросы отвечай кратко и по делу: сколько силы, здоровья, что в инвентаре, где вы находитесь.
 4. Действия разрешай через проверки: «Брось d20 + Ловкость, сложность 12». Результат броска игрок сообщает тебе.
@@ -157,7 +203,6 @@ const SYSTEM_PROMPT = `Ты — Мастер настольной ролевой
 6. Пиши атмосферно, но коротко: 2–4 предложения на ответ. Не растекайся.
 7. Никогда не говори «я не могу» или «я языковая модель». Ты — Мастер. Веди игру.
 8. Если игрок пишет «бросок» или присылает результат d20 — опиши последствие.
-
 
 ФОРМАТ ОТВЕТА: только текст Мастера, без markdown-заголовков и без пояснений от себя.`;
 
@@ -202,7 +247,32 @@ async function startGame(n){
   addMsg(`Игра на ${n} игроков. Мастер придумывает мир...`, 'thinking');
   setPhase('intro','Мастер');
 
-  const userMsg = `Начинаем игру на ${n} игроков. Придумай жанр, место, цель, вступление (2–4 предложения) и 6 ролей на выбор с описанием и предметами. Скажи игрокам, что они выбирают роли по очереди. Не говори всё сразу — только вступление и роли.`;
+  // Случайные элементы — каждый раз новые
+  const genre  = rnd(GENRES);
+  const mood   = rnd(MOODS);
+  const hook   = rnd(HOOKS);
+  const twist  = rnd(TWISTS);
+  const seed1  = rnd(SEEDS);
+  const seed2  = rnd(SEEDS);
+  const num    = Math.floor(Math.random()*100000);
+
+  const userMsg =
+`Партия №${num}.
+
+Жанр: ${genre}.
+Атмосфера: ${mood}.
+Завязка: ${hook}.
+Обязательный поворот в середине истории: ${twist}.
+Творческие зёрна (обязательно вплети их как детали): «${seed1}» и «${seed2}».
+
+Придумай:
+1) Название истории (2–4 слова).
+2) Место действия — конкретное, уникальное, не «лес» и не «замок».
+3) Цель партии.
+4) Вступление (2–4 предложения) — сразу с завязкой, без воды.
+5) Шесть РАЗНЫХ ролей на выбор, у каждой: имя, короткое описание, 2–3 предмета.
+
+ВАЖНО: не используй клише. Не начинай с таверны, незнакомца в плаще, «древнего артефакта», «тёмного лорда». Придумай что-то, чего игроки ещё не видели. Не пиши всё сразу — только название, место, цель, вступление и список ролей.`;
   S.history.push({role:'user', content:userMsg});
 
   try {
@@ -385,34 +455,6 @@ function showRollButton(){
   };
   c.appendChild(b);
 }
-
-/* ---------- PWA: регистрация service worker ---------- */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => {
-      console.warn('SW register failed:', err);
-    });
-  });
-}
-
-/* ---------- PWA: кнопка установки ---------- */
-let deferredPrompt = null;
-const installBtn = document.getElementById('installBtn');
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.style.display = 'block';
-});
-installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  installBtn.style.display = 'none';
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-});
-window.addEventListener('appinstalled', () => {
-  installBtn.style.display = 'none';
-});
 
 /* ---------- ИНИЦИАЛИЗАЦИЯ ---------- */
 $('#sendBtn').onclick = handleInput;
